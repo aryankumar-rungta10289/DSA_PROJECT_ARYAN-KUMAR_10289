@@ -1,0 +1,373 @@
+import java.lang.Override;
+import java.util.*;
+
+class Book {
+    private String id;
+    private String title;
+    private String author;
+    private String issuedTo;
+    private boolean available;
+
+    public Book(String id, String title, String author) {
+        this.id = id;
+        this.title = title;
+        this.author = author;
+        this.issuedTo = "";
+        this.available = true;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public String getIssuedTo() {
+        return issuedTo;
+    }
+
+    public boolean isAvailable() {
+        return available;
+    }
+
+    public void setIssuedTo(String issuedTo) {
+        this.issuedTo = issuedTo;
+        this.available = false;
+    }
+
+    public void setAvailable() {
+        this.issuedTo = "";
+        this.available = true;
+    }
+
+    @Override
+    public String toString() {
+        String status = available
+                ? "Available"
+                : "Issued to " + issuedTo;
+
+        return "ID: " + id
+                + " | Title: " + title
+                + " | Author: " + author
+                + " | Status: " + status;
+    }
+}
+
+public class DSALibraryManagementSystem {
+
+    
+    static ArrayList<Book> books = new ArrayList<>();
+
+    static HashMap<String, Book> bookMap = new HashMap<>();
+
+    static HashMap<String, Queue<String>> waiting =
+            new HashMap<>();
+
+    static Stack<String> history = new Stack<>();
+
+    static Scanner sc = new Scanner(System.in);
+
+    
+    static String readText(String message) {
+        while (true) {
+            System.out.print(message);
+            String input = sc.nextLine().trim();
+
+            if (!input.isEmpty()) {
+                return input;
+            }
+
+            System.out.println("Input cannot be empty.");
+        }
+    }
+
+    
+    static void addBook() {
+
+        System.out.println("\n----- ADD BOOK -----");
+
+        String id = readText("Enter Book ID: ");
+
+        if (bookMap.containsKey(id)) {
+            System.out.println("Book ID already exists.");
+            return;
+        }
+
+        String title = readText("Enter Book Title: ");
+        String author = readText("Enter Author Name: ");
+
+        Book book = new Book(id, title, author);
+
+        books.add(book);
+        bookMap.put(id, book);
+
+        
+        waiting.put(id, new LinkedList<>());
+
+        System.out.println("Book added successfully.");
+        System.out.println(book);
+    }
+
+    
+    static void displayBooks() {
+
+        System.out.println("\n----- ALL BOOKS -----");
+
+        if (books.isEmpty()) {
+            System.out.println("No books available.");
+            return;
+        }
+
+        for (Book book : books) {
+            System.out.println(book);
+        }
+    }
+
+    
+    static void searchBook() {
+
+        System.out.println("\n----- SEARCH BOOK -----");
+        System.out.println("1. Search by Book ID");
+        System.out.println("2. Search by Book Title");
+
+        int choice = readChoice();
+
+        if (choice == 1) {
+
+            String id = readText("Enter Book ID: ");
+
+            Book book = bookMap.get(id);
+
+            if (book != null) {
+                System.out.println("Book found:");
+                System.out.println(book);
+            } else {
+                System.out.println("Book not found.");
+            }
+
+        } else if (choice == 2) {
+
+            String title = readText("Enter Book Title: ");
+
+            boolean found = false;
+
+            for (Book book : books) {
+
+                if (book.getTitle().equalsIgnoreCase(title)) {
+                    System.out.println("Book found:");
+                    System.out.println(book);
+                    found = true;
+                }
+            }
+
+            if (!found) {
+                System.out.println("Book not found.");
+            }
+
+        } else {
+            System.out.println("Invalid search choice.");
+        }
+    }
+
+    
+    static void issueBook() {
+
+        System.out.println("\n----- ISSUE BOOK -----");
+
+        String id = readText("Enter Book ID: ");
+
+        Book book = bookMap.get(id);
+
+        if (book == null) {
+            System.out.println("Book not found.");
+            return;
+        }
+
+        String member = readText("Enter Member Name: ");
+
+        Queue<String> queue = waiting.get(id);
+
+        if (book.isAvailable()) {
+
+            book.setIssuedTo(member);
+
+            String record = id + " issued to " + member;
+            history.push(record);
+
+            System.out.println("Book issued to " + member);
+
+        } else {
+
+            if (book.getIssuedTo().equalsIgnoreCase(member)
+                    || queue.contains(member)) {
+
+                System.out.println(
+                        "Member already has this book or is in the waiting list."
+                );
+                return;
+            }
+
+            queue.add(member);
+
+            System.out.println(
+                    "Book already issued. " + member
+                            + " added to waiting list."
+            );
+        }
+    }
+
+    
+    static void returnBook() {
+
+        System.out.println("\n----- RETURN BOOK -----");
+
+        String id = readText("Enter Book ID: ");
+
+        Book book = bookMap.get(id);
+
+        if (book == null) {
+            System.out.println("Book not found.");
+            return;
+        }
+
+        if (book.isAvailable()) {
+            System.out.println("Book was not issued.");
+            return;
+        }
+
+        String previousMember = book.getIssuedTo();
+
+        
+        history.push(id + " returned by " + previousMember);
+
+        Queue<String> queue = waiting.get(id);
+
+        if (!queue.isEmpty()) {
+
+            
+            String nextMember = queue.poll();
+
+            book.setIssuedTo(nextMember);
+
+            
+            history.push(id + " issued to " + nextMember);
+
+            System.out.println(
+                    "Book returned by " + previousMember
+            );
+
+            System.out.println(
+                    "Book returned. Issued to next member: "
+                            + nextMember
+            );
+
+        } else {
+
+            book.setAvailable();
+
+            System.out.println(
+                    "Book returned. " + id
+                            + " is now Available."
+            );
+        }
+    }
+
+    
+    static void lastTransaction() {
+
+        System.out.println("\n----- LAST TRANSACTION -----");
+
+        if (history.isEmpty()) {
+            System.out.println("No transactions yet.");
+            return;
+        }
+
+        System.out.println(history.peek());
+    }
+
+    
+    static int readChoice() {
+
+        System.out.print("Enter your choice: ");
+
+        String input = sc.nextLine().trim();
+
+        try {
+            return Integer.parseInt(input);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    
+    public static void main(String[] args) {
+
+        int choice;
+
+        System.out.println("==================================");
+        System.out.println("    LIBRARY MANAGEMENT SYSTEM");
+        System.out.println("==================================");
+
+        do {
+
+            System.out.println("\n========== MAIN MENU ==========");
+            System.out.println("1. Add Book");
+            System.out.println("2. Display Books");
+            System.out.println("3. Search Book");
+            System.out.println("4. Issue Book");
+            System.out.println("5. Return Book");
+            System.out.println("6. Last Transaction");
+            System.out.println("7. Exit");
+            System.out.println("================================");
+
+            choice = readChoice();
+
+            switch (choice) {
+
+                case 1:
+                    addBook();
+                    break;
+
+                case 2:
+                    displayBooks();
+                    break;
+
+                case 3:
+                    searchBook();
+                    break;
+
+                case 4:
+                    issueBook();
+                    break;
+
+                case 5:
+                    returnBook();
+                    break;
+
+                case 6:
+                    lastTransaction();
+                    break;
+
+                case 7:
+                    System.out.println(
+                            "Thank you for using Library Management System!"
+                    );
+                    break;
+
+                default:
+                    System.out.println(
+                            "Invalid choice. Please enter 1 to 7."
+                    );
+            }
+
+        } while (choice != 7);
+
+        sc.close();
+    }
+}
